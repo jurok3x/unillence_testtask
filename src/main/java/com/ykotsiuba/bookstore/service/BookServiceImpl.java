@@ -6,6 +6,7 @@ import com.google.rpc.ErrorInfo;
 import com.google.rpc.Status;
 import com.ykotsiuba.bookstore.BookOuterClass;
 import com.ykotsiuba.bookstore.BookServiceGrpc;
+import com.ykotsiuba.bookstore.dto.BookDTO;
 import com.ykotsiuba.bookstore.dto.CreateBookRequestDTO;
 import com.ykotsiuba.bookstore.entity.Book;
 import com.ykotsiuba.bookstore.mapper.BookMapper;
@@ -60,11 +61,52 @@ public class BookServiceImpl extends BookServiceGrpc.BookServiceImplBase {
 
     @Override
     public void deleteBook(BookOuterClass.DeleteBookRequest request, StreamObserver<BookOuterClass.DeleteBookResponse> responseObserver) {
-
+        String id = request.getId();
+        Optional<Book> optionalBook = bookRepository.findById(UUID.fromString(id));
+        optionalBook.ifPresentOrElse(
+                book -> {
+                    bookRepository.delete(book);
+                    BookOuterClass.DeleteBookResponse response = BookOuterClass.DeleteBookResponse.newBuilder().setMessage("Book deleted").build();
+                    responseObserver.onNext(response);
+                    responseObserver.onCompleted();
+                },
+                () -> {
+                    Status status = Status.newBuilder()
+                            .setCode(Code.NOT_FOUND.getNumber())
+                            .setMessage("Book not found")
+                            .addDetails(Any.pack(ErrorInfo.newBuilder()
+                                    .setDomain("com.ykotsiuba")
+                                    .setReason("Invalid id")
+                                    .build()
+                            )).build();
+                    responseObserver.onError(StatusProto.toStatusRuntimeException(status));
+                }
+        );
     }
 
     @Override
     public void updateBook(BookOuterClass.UpdateBookRequest request, StreamObserver<BookOuterClass.Book> responseObserver) {
-
+        String id = request.getId();
+        Optional<Book> optionalBook = bookRepository.findById(UUID.fromString(id));
+        optionalBook.ifPresentOrElse(
+                book -> {
+                    BookOuterClass.Book requestBook = request.getBook();
+                    BookDTO bookDTO = bookMapper.toBookDTO(requestBook);
+                    Book updatedBook = bookRepository.save(bookMapper.toEntity(bookDTO));
+                    responseObserver.onNext(bookMapper.toProto(bookMapper.toDTO(updatedBook)));
+                    responseObserver.onCompleted();
+                },
+                () -> {
+                    Status status = Status.newBuilder()
+                            .setCode(Code.NOT_FOUND.getNumber())
+                            .setMessage("Book not found")
+                            .addDetails(Any.pack(ErrorInfo.newBuilder()
+                                    .setDomain("com.ykotsiuba")
+                                    .setReason("Invalid id")
+                                    .build()
+                            )).build();
+                    responseObserver.onError(StatusProto.toStatusRuntimeException(status));
+                }
+        );
     }
 }

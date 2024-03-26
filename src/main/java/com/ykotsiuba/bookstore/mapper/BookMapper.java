@@ -19,4 +19,6 @@ public interface BookMapper {
     BookDTO toDTO(Book book);
     BookOuterClass.Book toProto(BookDTO bookDTO);
     CreateBookRequestDTO toCreateRequestDTO(BookOuterClass.CreateBookRequest request);
+
+    BookDTO toBookDTO(BookOuterClass.Book bookProto);
 }
