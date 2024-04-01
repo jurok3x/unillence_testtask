@@ -102,7 +102,3 @@ tasks.register("rollbackDatabase") {
 tasks.named('test') {
 	useJUnitPlatform()
 }
-
-test {
-	useTestNG()
-}
