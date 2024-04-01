@@ -34,10 +34,19 @@ message DeleteBookResponse {
   string message = 1;
 }
 
+message Empty {}
+
+message BookList {
+  repeated Book books = 1;
+}
+
+
 service BookService {
   rpc CreateBook(CreateBookRequest) returns (Book);
 
   rpc ReadBook(ReadBookRequest) returns (Book);
+
+  rpc ReadALLBooks(Empty) returns (BookList);
 
   rpc UpdateBook(UpdateBookRequest) returns (Book);
 

@@ -16,6 +16,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import net.devh.boot.grpc.server.service.GrpcService;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,14 +38,7 @@ public class BookServiceImpl extends BookServiceGrpc.BookServiceImplBase {
                     responseObserver.onCompleted();
                 },
                 () -> {
-                    Status status = Status.newBuilder()
-                            .setCode(Code.NOT_FOUND.getNumber())
-                            .setMessage("Book not found")
-                            .addDetails(Any.pack(ErrorInfo.newBuilder()
-                                    .setDomain("com.ykotsiuba")
-                                    .setReason("Invalid id")
-                                    .build()
-                            )).build();
+                    Status status = prepareNotFoundStatus();
                     responseObserver.onError(StatusProto.toStatusRuntimeException(status));
                 }
         );
@@ -71,17 +65,20 @@ public class BookServiceImpl extends BookServiceGrpc.BookServiceImplBase {
                     responseObserver.onCompleted();
                 },
                 () -> {
-                    Status status = Status.newBuilder()
-                            .setCode(Code.NOT_FOUND.getNumber())
-                            .setMessage("Book not found")
-                            .addDetails(Any.pack(ErrorInfo.newBuilder()
-                                    .setDomain("com.ykotsiuba")
-                                    .setReason("Invalid id")
-                                    .build()
-                            )).build();
+                    Status status = prepareNotFoundStatus();
                     responseObserver.onError(StatusProto.toStatusRuntimeException(status));
                 }
         );
+    }
+
+    @Override
+    public void readALLBooks(BookOuterClass.Empty request, StreamObserver<BookOuterClass.BookList> responseObserver) {
+        List<Book> books = bookRepository.findAll();
+        List<BookOuterClass.Book> responseList = books.stream().map(bookMapper::toDTO).map(bookMapper::toProto).toList();
+        BookOuterClass.BookList response = BookOuterClass.BookList.newBuilder()
+                        .addAllBooks(responseList).build();
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
     }
 
     @Override
@@ -97,16 +94,20 @@ public class BookServiceImpl extends BookServiceGrpc.BookServiceImplBase {
                     responseObserver.onCompleted();
                 },
                 () -> {
-                    Status status = Status.newBuilder()
-                            .setCode(Code.NOT_FOUND.getNumber())
-                            .setMessage("Book not found")
-                            .addDetails(Any.pack(ErrorInfo.newBuilder()
-                                    .setDomain("com.ykotsiuba")
-                                    .setReason("Invalid id")
-                                    .build()
-                            )).build();
+                    Status status = prepareNotFoundStatus();
                     responseObserver.onError(StatusProto.toStatusRuntimeException(status));
                 }
         );
+    }
+
+    private Status prepareNotFoundStatus() {
+        return Status.newBuilder()
+                .setCode(Code.NOT_FOUND.getNumber())
+                .setMessage("Book not found")
+                .addDetails(Any.pack(ErrorInfo.newBuilder()
+                        .setDomain("com.ykotsiuba")
+                        .setReason("Invalid id")
+                        .build()
+                )).build();
     }
 }
