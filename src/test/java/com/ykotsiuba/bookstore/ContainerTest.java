@@ -2,8 +2,6 @@ package com.ykotsiuba.bookstore;
 
 import com.ykotsiuba.bookstore.entity.Book;
 import com.ykotsiuba.bookstore.repository.BookRepository;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,8 +10,7 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @SpringBootTest
 @Import(TestBookstoreApplication.class)

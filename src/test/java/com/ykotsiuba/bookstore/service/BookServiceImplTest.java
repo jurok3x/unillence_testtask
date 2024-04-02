@@ -5,6 +5,7 @@ import com.ykotsiuba.bookstore.BookServiceGrpc;
 import com.ykotsiuba.bookstore.TestBookstoreApplication;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,12 +61,7 @@ public class BookServiceImplTest {
 
     @Test
     public void testCreateBookService() {
-        BookOuterClass.CreateBookRequest request = BookOuterClass.CreateBookRequest.newBuilder()
-                .setTitle("Title")
-                .setAuthor("John Doe")
-                .setIsbn("ISBN-1234567892")
-                .setQuantity(20)
-                .build();
+        BookOuterClass.CreateBookRequest request = prepareBook();
         BookOuterClass.Book response = stub.createBook(request);
         assertNotNull(response.getId());
     }
@@ -74,17 +70,21 @@ public class BookServiceImplTest {
     public void testUpdateBookService() {
         BookOuterClass.UpdateBookRequest request = BookOuterClass.UpdateBookRequest.newBuilder()
                 .setId("00000000-0000-0000-0000-000000000001")
-                .setBook(BookOuterClass.Book.newBuilder()
-                        .setId("00000000-0000-0000-0000-000000000001")
-                        .setTitle("Title")
-                        .setAuthor("John Doe")
-                        .setIsbn("ISBN-1234567892")
-                        .setQuantity(20)
-                        .build()
+                .setBook(prepareBook()
                 )
                 .build();
         BookOuterClass.Book response = stub.updateBook(request);
         assertEquals("John Doe", response.getAuthor());
+    }
+
+    @NotNull
+    private static BookOuterClass.CreateBookRequest prepareBook() {
+        return BookOuterClass.CreateBookRequest.newBuilder()
+                .setTitle("Title")
+                .setAuthor("John Doe")
+                .setIsbn("ISBN-1234567892")
+                .setQuantity(20)
+                .build();
     }
 
     @Test
