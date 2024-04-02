@@ -23,7 +23,7 @@ message ReadBookRequest {
 
 message UpdateBookRequest {
   string id = 1;
-  Book book = 2;
+  CreateBookRequest book = 2;
 }
 
 message DeleteBookRequest {
