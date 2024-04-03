@@ -2,18 +2,18 @@ package com.ykotsiuba.bookstore.service;
 
 import com.ykotsiuba.bookstore.dto.BookDTO;
 import com.ykotsiuba.bookstore.dto.CreateBookRequestDTO;
-
-import java.util.List;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface BookService {
 
-    BookDTO findById(String id);
+    Mono<BookDTO> findById(String id);
 
-    List<BookDTO> findAll();
+    Flux<BookDTO> findAll();
 
-    BookDTO save(CreateBookRequestDTO requestDTO);
+    Mono<BookDTO> save(CreateBookRequestDTO requestDTO);
 
-    BookDTO update(String id, CreateBookRequestDTO requestDTO);
+    Mono<BookDTO> update(String id, CreateBookRequestDTO requestDTO);
 
-    void delete(String id);
+    Mono<Void> delete(String id);
 }
