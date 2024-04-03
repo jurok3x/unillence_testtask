@@ -40,7 +40,6 @@ message BookList {
   repeated Book books = 1;
 }
 
-
 service BookService {
   rpc CreateBook(CreateBookRequest) returns (Book);
 

@@ -9,58 +9,64 @@ import com.ykotsiuba.bookstore.service.BookService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class BookServiceImpl implements BookService {
 
+    private static final String BOOK_NOT_FOUND = "Book not found";
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
 
     @Override
-    public BookDTO findById(String id) {
-        Book book = bookRepository.findById(UUID.fromString(id)).orElseThrow(
-                () -> new EntityNotFoundException("Book not found with id: " + id)
-        );
-        BookDTO bookDTO = bookMapper.toDTO(book);
-        return bookDTO;
+    public Mono<BookDTO> findById(String id) {
+        return Mono.fromCallable(() -> bookRepository.findById(UUID.fromString(id)))
+                .flatMap(Mono::justOrEmpty)
+                .map(bookMapper::toDTO)
+                .switchIfEmpty(Mono.error(new EntityNotFoundException(BOOK_NOT_FOUND)));
     }
 
     @Override
-    public List<BookDTO> findAll() {
-        List<Book> books = bookRepository.findAll();
-        return books.stream().map(bookMapper::toDTO).toList();
+    public Flux<BookDTO> findAll() {
+        return Flux.defer(() -> Flux.fromIterable(bookRepository.findAll())
+                .map(bookMapper::toDTO));
     }
 
     @Override
-    public BookDTO save(CreateBookRequestDTO requestDTO) {
+    public Mono<BookDTO> save(CreateBookRequestDTO requestDTO) {
         Book book = new Book();
         book.setAuthor(requestDTO.getAuthor());
         book.setTitle(requestDTO.getTitle());
         book.setIsbn(requestDTO.getIsbn());
         book.setQuantity(requestDTO.getQuantity());
         Book newBook = bookRepository.save(book);
-        return bookMapper.toDTO(newBook);
+        return Mono.fromCallable(() -> bookRepository.save(newBook))
+                .map(bookMapper::toDTO);
     }
 
     @Override
-    public BookDTO update(String id, CreateBookRequestDTO requestDTO) {
-        BookDTO bookDTO = findById(id);
-        bookDTO.setAuthor(requestDTO.getAuthor());
-        bookDTO.setTitle(requestDTO.getTitle());
-        bookDTO.setIsbn(requestDTO.getIsbn());
-        bookDTO.setQuantity(requestDTO.getQuantity());
-        Book updatedBook = bookRepository.save(bookMapper.toEntity(bookDTO));
-        return bookMapper.toDTO(updatedBook);
+    public Mono<BookDTO> update(String id, CreateBookRequestDTO requestDTO) {
+        return findById(id)
+                .flatMap(existingBook -> {
+                    existingBook.setAuthor(requestDTO.getAuthor());
+                    existingBook.setTitle(requestDTO.getTitle());
+                    existingBook.setIsbn(requestDTO.getIsbn());
+                    existingBook.setQuantity(requestDTO.getQuantity());
+                    return Mono.fromCallable(() -> bookRepository
+                            .save(bookMapper.toEntity(existingBook))
+                    );
+                }).map(bookMapper::toDTO);
     }
 
     @Override
-    public void delete(String id) {
-        BookDTO bookDTO = findById(id);
-        UUID bookId = UUID.fromString(bookDTO.getId());
-        bookRepository.deleteById(bookId);
+    public Mono<Void> delete(String id) {
+        return findById(id)
+                .flatMap(existingBook -> Mono.fromRunnable(
+                        () -> bookRepository
+                                .deleteById(UUID.fromString(existingBook.getId()))));
     }
 }
