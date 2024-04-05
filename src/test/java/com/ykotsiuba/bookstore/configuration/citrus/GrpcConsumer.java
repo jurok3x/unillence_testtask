@@ -1,7 +1,6 @@
 package com.ykotsiuba.bookstore.configuration.citrus;
 
 import com.consol.citrus.context.TestContext;
-import com.consol.citrus.http.message.HttpMessage;
 import com.consol.citrus.message.DefaultMessage;
 import com.consol.citrus.message.Message;
 import com.consol.citrus.messaging.Consumer;
