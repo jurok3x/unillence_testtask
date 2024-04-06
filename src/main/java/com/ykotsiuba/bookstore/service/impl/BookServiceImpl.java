@@ -44,8 +44,7 @@ public class BookServiceImpl implements BookService {
         book.setTitle(requestDTO.getTitle());
         book.setIsbn(requestDTO.getIsbn());
         book.setQuantity(requestDTO.getQuantity());
-        Book newBook = bookRepository.save(book);
-        return Mono.fromCallable(() -> bookRepository.save(newBook))
+        return Mono.fromCallable(() -> bookRepository.save(book))
                 .map(bookMapper::toDTO);
     }
 
