@@ -74,6 +74,19 @@ public class GrpcProducer implements Producer {
                     throw new RuntimeException(e);
                 }
                 break;
+            case UPDATE_BOOK:
+                try {
+                    BookOuterClass.UpdateBookRequest request = null;
+                    BookOuterClass.UpdateBookRequest.Builder builder = BookOuterClass.UpdateBookRequest.newBuilder();
+                    JsonFormat.parser().ignoringUnknownFields().merge(payload, builder);
+                    request = builder.build();
+                    BookOuterClass.Book response = stub.updateBook(request);
+                    String jsonResponse = JsonFormat.printer().print(response);
+                    context.setVariable("grpcResponse", jsonResponse);
+                } catch (InvalidProtocolBufferException e) {
+                    throw new RuntimeException(e);
+                }
+                break;
             default:
                 throw new RuntimeException("Unknown method.");
         }

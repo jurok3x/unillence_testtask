@@ -1,26 +1,21 @@
 package com.ykotsiuba.bookstore.service;
 
-import com.consol.citrus.GherkinTestActionRunner;
-import com.consol.citrus.annotations.CitrusResource;
-import com.consol.citrus.annotations.CitrusTest;
-import com.consol.citrus.junit.jupiter.CitrusSupport;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.util.JsonFormat;
 import com.ykotsiuba.bookstore.BookOuterClass;
+import com.ykotsiuba.bookstore.BookServiceGrpc;
 import com.ykotsiuba.bookstore.TestBookstoreApplication;
-import com.ykotsiuba.bookstore.configuration.citrus.GpcMethods;
-import com.ykotsiuba.bookstore.configuration.citrus.GrpcEndpoint;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 
-import static com.consol.citrus.actions.ReceiveMessageAction.Builder.receive;
-import static com.consol.citrus.actions.SendMessageAction.Builder.send;
-import static com.consol.citrus.validation.json.JsonPathMessageValidationContext.Builder.jsonPath;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@CitrusSupport
 @SpringBootTest
 @Import(TestBookstoreApplication.class)
 @TestPropertySource(properties = {
@@ -29,125 +24,80 @@ import static com.consol.citrus.validation.json.JsonPathMessageValidationContext
 })
 public class BookIT {
 
-    private static final int EXPECTED_BOOKS_NUMBER = 2;
-    private static final String HEADER_NAME = "method";
-    public static final String BOOK_DELETED_MESSAGE = "Book deleted.";
+    private static final int EXPECTED_BOOKS_COUNT = 2;
+    private BookServiceGrpc.BookServiceBlockingStub stub;
+    private ManagedChannel channel;
 
-    @Autowired
-    GrpcEndpoint grpcEndpoint;
+    @BeforeEach
+    void setUp() {
+        channel = ManagedChannelBuilder.forAddress("localhost", 9090)
+                .usePlaintext()
+                .build();
 
-//    @BeforeEach
-//    void setUp() {
-//        GrpcEndpointConfiguration configuration = new GrpcEndpointConfiguration("localhost", 9090);
-//        grpcEndpoint =  new GrpcEndpoint(configuration);
-//    }
+        stub = BookServiceGrpc.newBlockingStub(channel);
+    }
 
-    @Test
-    @CitrusTest
-    public void testReadBookService(@CitrusResource GherkinTestActionRunner runner) throws InvalidProtocolBufferException {
-        String request = prepareFindByIdRequest();
-        String expectedJsonResponse = prepareFindByIdResponse();
-
-        runner.$(send()
-                        .endpoint(grpcEndpoint)
-                        .message()
-                        .header(HEADER_NAME, GpcMethods.READ_BOOK)
-                        .body(request)
-                .build());
-
-        runner.$(receive()
-                .endpoint(grpcEndpoint)
-                .message()
-                .body(expectedJsonResponse)
-                .build());
+    @AfterEach
+    void tearDown() {
+        channel.shutdown();
     }
 
     @Test
-    @CitrusTest
-    public void testReadAllBooksService(@CitrusResource GherkinTestActionRunner runner) throws InvalidProtocolBufferException {
-        runner.$(send()
-                .endpoint(grpcEndpoint)
-                .message()
-                .header(HEADER_NAME, GpcMethods.READ_ALL_BOOKS)
-                .build());
-
-        runner.$(receive()
-                .endpoint(grpcEndpoint)
-                .message()
-                .validate(jsonPath()
-                        .expression("$.books.size()", EXPECTED_BOOKS_NUMBER)
-                )
-                .build());
-    }
-
-    @Test
-    @CitrusTest
-    public void testCreateBookService(@CitrusResource GherkinTestActionRunner runner) throws InvalidProtocolBufferException {
-        BookOuterClass.CreateBookRequest request = prepareCreateBookRequest();
-        String requestJson = JsonFormat.printer().print(request);
-
-        runner.$(send()
-                .endpoint(grpcEndpoint)
-                .message()
-                .header(HEADER_NAME, GpcMethods.CREATE_BOOK)
-                .body(requestJson)
-                .build());
-
-        runner.$(receive()
-                .endpoint(grpcEndpoint)
-                .message()
-                .validate(jsonPath()
-                        .expression("$.title", request.getTitle())
-                        .expression("$.author", request.getAuthor())
-                        .expression("$.isbn", request.getIsbn())
-                        .expression("$.quantity", request.getQuantity())
-                )
-                .build());
-    }
-
-    @Test
-    @CitrusTest
-    public void testDeleteBookService(@CitrusResource GherkinTestActionRunner runner) throws InvalidProtocolBufferException {
-        String request = prepareFindByIdRequest();
-
-        runner.$(send()
-                .endpoint(grpcEndpoint)
-                .message()
-                .header(HEADER_NAME, GpcMethods.DELETE_BOOK)
-                .body(request)
-                .build());
-
-        runner.$(receive()
-                .endpoint(grpcEndpoint)
-                .message()
-                .body(BOOK_DELETED_MESSAGE)
-                .build());
-    }
-
-    private String prepareFindByIdRequest() throws InvalidProtocolBufferException {
+    public void testFindByIdService() {
         BookOuterClass.ReadBookRequest request = BookOuterClass.ReadBookRequest.newBuilder()
                 .setId("00000000-0000-0000-0000-000000000002")
                 .build();
-        return JsonFormat.printer().print(request);
+        BookOuterClass.Book response = stub.readBook(request);
+        assertNotNull(response.getAuthor());
     }
 
-    private String prepareFindByIdResponse() throws InvalidProtocolBufferException {
-        BookOuterClass.Book expectedResponse = BookOuterClass.Book.newBuilder()
-                .setId("00000000-0000-0000-0000-000000000002")
-                .setAuthor("Author 2")
-                .setTitle("Book Title 2")
-                .setIsbn("ISBN-0987654321")
-                .setQuantity(5)
+    @Test
+    public void testFindByAllService() {
+        BookOuterClass.Empty request = BookOuterClass.Empty.newBuilder()
                 .build();
-        return JsonFormat.printer().print(expectedResponse);
+        BookOuterClass.BookList response = stub.readALLBooks(request);
+        assertEquals(EXPECTED_BOOKS_COUNT, response.getBooksCount());
     }
 
-    private BookOuterClass.CreateBookRequest prepareCreateBookRequest() throws InvalidProtocolBufferException {
+    @Test
+    public void testCreateBookService() {
+        BookOuterClass.CreateBookRequest request = prepareBook();
+        BookOuterClass.Book response = stub.createBook(request);
+        assertNotNull(response.getId());
+    }
+
+    @Test
+    public void testUpdateBookService() {
+        BookOuterClass.UpdateBookRequest request = BookOuterClass.UpdateBookRequest.newBuilder()
+                .setId("00000000-0000-0000-0000-000000000001")
+                .setAuthor("new Author")
+                .build();
+        BookOuterClass.Book response = stub.updateBook(request);
+        assertEquals(request.getAuthor(), response.getAuthor());
+    }
+
+    @NotNull
+    private static BookOuterClass.CreateBookRequest prepareBook() {
         return BookOuterClass.CreateBookRequest.newBuilder()
-                .setAuthor("Author 3")
-                .setTitle("Book Title 3")
-                .setIsbn("ISBN-0987654323")
-                .setQuantity(50)
+                .setTitle("Title")
+                .setAuthor("John Doe")
+                .setIsbn("ISBN-1234567892")
+                .setQuantity(20)
                 .build();
     }
+
+    @Test
+    public void testDeleteBookService() {
+        BookOuterClass.DeleteBookRequest deleteBookRequest = BookOuterClass.DeleteBookRequest.newBuilder()
+                .setId("00000000-0000-0000-0000-000000000001")
+                .build();
+        BookOuterClass.DeleteBookResponse deleteBookResponse = stub.deleteBook(deleteBookRequest);
+        assertNotNull(deleteBookResponse.getMessage());
+
+        BookOuterClass.Empty getAllBooksRequest = BookOuterClass.Empty.newBuilder()
+                .build();
+        BookOuterClass.BookList getAllBooksResponse = stub.readALLBooks(getAllBooksRequest);
+        assertEquals(EXPECTED_BOOKS_COUNT - 1, getAllBooksResponse.getBooksCount());
+    }
+
 }

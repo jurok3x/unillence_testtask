@@ -2,6 +2,7 @@ package com.ykotsiuba.bookstore.service.impl;
 
 import com.ykotsiuba.bookstore.dto.BookDTO;
 import com.ykotsiuba.bookstore.dto.CreateBookRequestDTO;
+import com.ykotsiuba.bookstore.dto.UpdateBookRequestDTO;
 import com.ykotsiuba.bookstore.entity.Book;
 import com.ykotsiuba.bookstore.mapper.BookMapper;
 import com.ykotsiuba.bookstore.repository.BookRepository;
@@ -49,13 +50,17 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    public Mono<BookDTO> update(String id, CreateBookRequestDTO requestDTO) {
+    public Mono<BookDTO> update(String id, UpdateBookRequestDTO requestDTO) {
         return findById(id)
                 .flatMap(existingBook -> {
-                    existingBook.setAuthor(requestDTO.getAuthor());
-                    existingBook.setTitle(requestDTO.getTitle());
-                    existingBook.setIsbn(requestDTO.getIsbn());
-                    existingBook.setQuantity(requestDTO.getQuantity());
+                    existingBook.setAuthor(requestDTO.getAuthor()
+                            .orElse(existingBook.getAuthor()));
+                    existingBook.setTitle(requestDTO.getTitle()
+                            .orElse(existingBook.getTitle()));
+                    existingBook.setIsbn(requestDTO.getIsbn()
+                            .orElse(existingBook.getIsbn()));
+                    existingBook.setQuantity(requestDTO.getQuantity()
+                            .orElse(existingBook.getQuantity()));
                     return Mono.fromCallable(() -> bookRepository
                             .save(bookMapper.toEntity(existingBook))
                     );
