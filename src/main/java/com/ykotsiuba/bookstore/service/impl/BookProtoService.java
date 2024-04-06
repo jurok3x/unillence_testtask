@@ -6,7 +6,6 @@ import com.google.rpc.ErrorInfo;
 import com.google.rpc.Status;
 import com.ykotsiuba.bookstore.BookOuterClass;
 import com.ykotsiuba.bookstore.BookServiceGrpc;
-import com.ykotsiuba.bookstore.dto.CreateBookRequestDTO;
 import com.ykotsiuba.bookstore.dto.UpdateBookRequestDTO;
 import com.ykotsiuba.bookstore.mapper.BookProtoMapper;
 import com.ykotsiuba.bookstore.service.BookService;
