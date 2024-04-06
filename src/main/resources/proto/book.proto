@@ -23,7 +23,10 @@ message ReadBookRequest {
 
 message UpdateBookRequest {
   string id = 1;
-  CreateBookRequest book = 2;
+  optional string title = 2;
+  optional string author = 3;
+  optional string isbn = 4;
+  optional int32 quantity = 5;
 }
 
 message DeleteBookRequest {

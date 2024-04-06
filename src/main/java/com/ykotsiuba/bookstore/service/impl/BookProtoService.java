@@ -6,7 +6,7 @@ import com.google.rpc.ErrorInfo;
 import com.google.rpc.Status;
 import com.ykotsiuba.bookstore.BookOuterClass;
 import com.ykotsiuba.bookstore.BookServiceGrpc;
-import com.ykotsiuba.bookstore.dto.CreateBookRequestDTO;
+import com.ykotsiuba.bookstore.dto.UpdateBookRequestDTO;
 import com.ykotsiuba.bookstore.mapper.BookProtoMapper;
 import com.ykotsiuba.bookstore.service.BookService;
 import io.grpc.protobuf.StatusProto;
@@ -86,7 +86,7 @@ public class BookProtoService extends BookServiceGrpc.BookServiceImplBase {
     @Override
     public void updateBook(BookOuterClass.UpdateBookRequest request, StreamObserver<BookOuterClass.Book> responseObserver) {
         String id = request.getId();
-        CreateBookRequestDTO requestDTO = bookMapper.toCreateRequestDTO(request.getBook());
+        UpdateBookRequestDTO requestDTO = bookMapper.toUpdateRequestDTO(request);
         bookService.update(id, requestDTO)
                 .map(bookMapper::toProto)
                 .subscribe(responseObserver::onNext,
