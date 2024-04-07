@@ -3,23 +3,30 @@ package com.ykotsiuba.bookstore.configuration.citrus;
 import com.consol.citrus.context.TestContext;
 import com.consol.citrus.message.Message;
 import com.consol.citrus.messaging.Producer;
+import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import com.ykotsiuba.bookstore.BookOuterClass;
 import com.ykotsiuba.bookstore.BookServiceGrpc.BookServiceBlockingStub;
 
+import java.util.concurrent.BlockingQueue;
+
 public class GrpcProducer implements Producer {
 
-    private BookServiceBlockingStub stub;
+    private static final String HEADER_NAME = "method";
+    private final BookServiceBlockingStub stub;
 
-    public GrpcProducer(BookServiceBlockingStub stub) {
+    private final BlockingQueue<GeneratedMessageV3> messages;
+
+    public GrpcProducer(BookServiceBlockingStub stub, BlockingQueue<GeneratedMessageV3> messages) {
         this.stub = stub;
+        this.messages = messages;
     }
 
 
     @Override
     public void send(Message message, TestContext context) {
-        String methodName = message.getHeader("method").toString();
+        String methodName = message.getHeader(HEADER_NAME).toString();
         GpcMethods method = GpcMethods.valueOf(methodName);
 
         String payload = (String) message.getPayload();
@@ -27,26 +34,22 @@ public class GrpcProducer implements Producer {
         switch (method) {
             case READ_BOOK:
                 try {
-                    BookOuterClass.ReadBookRequest request = null;
                     BookOuterClass.ReadBookRequest.Builder builder = BookOuterClass.ReadBookRequest.newBuilder();
                     JsonFormat.parser().ignoringUnknownFields().merge(payload, builder);
-                    request = builder.build();
+                    BookOuterClass.ReadBookRequest request = builder.build();
                     BookOuterClass.Book response = stub.readBook(request);
-                    String jsonResponse = JsonFormat.printer().print(response);
-                    context.setVariable("grpcResponse", jsonResponse);
+                    messages.add(response);
                 } catch (InvalidProtocolBufferException e) {
                     throw new RuntimeException(e);
                 }
                 break;
             case CREATE_BOOK:
                 try {
-                    BookOuterClass.CreateBookRequest request = null;
                     BookOuterClass.CreateBookRequest.Builder builder = BookOuterClass.CreateBookRequest.newBuilder();
                     JsonFormat.parser().ignoringUnknownFields().merge(payload, builder);
-                    request = builder.build();
+                    BookOuterClass.CreateBookRequest request = builder.build();
                     BookOuterClass.Book response = stub.createBook(request);
-                    String jsonResponse = JsonFormat.printer().print(response);
-                    context.setVariable("grpcResponse", jsonResponse);
+                    messages.add(response);
                 } catch (InvalidProtocolBufferException e) {
                     throw new RuntimeException(e);
                 }
@@ -55,34 +58,29 @@ public class GrpcProducer implements Producer {
                 try {
                     BookOuterClass.Empty request = BookOuterClass.Empty.newBuilder().build();
                     BookOuterClass.BookList response = stub.readALLBooks(request);
-                    String jsonResponse = JsonFormat.printer().print(response);
-                    context.setVariable("grpcResponse", jsonResponse);
-                } catch (InvalidProtocolBufferException e) {
+                    messages.add(response);
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
                 break;
             case DELETE_BOOK:
                 try {
-                    BookOuterClass.DeleteBookRequest request = null;
                     BookOuterClass.DeleteBookRequest.Builder builder = BookOuterClass.DeleteBookRequest.newBuilder();
                     JsonFormat.parser().ignoringUnknownFields().merge(payload, builder);
-                    request = builder.build();
+                    BookOuterClass.DeleteBookRequest request = builder.build();
                     BookOuterClass.DeleteBookResponse response = stub.deleteBook(request);
-                    String jsonResponse = response.getMessage();
-                    context.setVariable("grpcResponse", jsonResponse);
+                    messages.add(response);
                 } catch (InvalidProtocolBufferException e) {
                     throw new RuntimeException(e);
                 }
                 break;
             case UPDATE_BOOK:
                 try {
-                    BookOuterClass.UpdateBookRequest request = null;
                     BookOuterClass.UpdateBookRequest.Builder builder = BookOuterClass.UpdateBookRequest.newBuilder();
                     JsonFormat.parser().ignoringUnknownFields().merge(payload, builder);
-                    request = builder.build();
+                    BookOuterClass.UpdateBookRequest request = builder.build();
                     BookOuterClass.Book response = stub.updateBook(request);
-                    String jsonResponse = JsonFormat.printer().print(response);
-                    context.setVariable("grpcResponse", jsonResponse);
+                    messages.add(response);
                 } catch (InvalidProtocolBufferException e) {
                     throw new RuntimeException(e);
                 }
