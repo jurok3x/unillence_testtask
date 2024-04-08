@@ -4,9 +4,13 @@ import com.consol.citrus.GherkinTestActionRunner;
 import com.consol.citrus.annotations.CitrusResource;
 import com.consol.citrus.annotations.CitrusTest;
 import com.consol.citrus.junit.jupiter.CitrusSupport;
+import com.consol.citrus.message.DefaultMessage;
+import com.consol.citrus.message.Message;
 import com.consol.citrus.message.MessageType;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.util.JsonFormat;
 import com.ykotsiuba.bookstore.BookOuterClass;
 import com.ykotsiuba.bookstore.TestBookstoreApplication;
 import com.ykotsiuba.bookstore.configuration.citrus.GpcMethods;
@@ -40,20 +44,25 @@ public class BookITCitrus {
     @Test
     @CitrusTest
     public void testReadBookService(@CitrusResource GherkinTestActionRunner runner) throws InvalidProtocolBufferException {
-        String request = prepareFindByIdRequest();
-        String expectedJsonResponse = prepareFindByIdResponse();
+        BookOuterClass.ReadBookRequest request = prepareFindByIdRequest();
+        Message message = prepareMessage(request, GpcMethods.READ_BOOK);
+
+        BookOuterClass.Book response = prepareFindByIdResponse();
 
         runner.$(send()
                         .endpoint(grpcEndpoint)
-                        .message()
-                        .header(HEADER_NAME, GpcMethods.READ_BOOK)
-                        .body(request)
+                        .message(message)
                 .build());
 
         runner.$(receive()
                 .endpoint(grpcEndpoint)
                 .message()
-                .body(expectedJsonResponse)
+                .validate(jsonPath()
+                        .expression("$.title", response.getTitle())
+                        .expression("$.author", response.getAuthor())
+                        .expression("$.isbn", response.getIsbn())
+                        .expression("$.quantity", response.getQuantity())
+                )
                 .build());
     }
 
@@ -79,13 +88,11 @@ public class BookITCitrus {
     @CitrusTest
     public void testCreateBookService(@CitrusResource GherkinTestActionRunner runner) throws InvalidProtocolBufferException {
         BookOuterClass.CreateBookRequest request = prepareCreateBookRequest();
-        String requestJson = JsonFormat.printer().print(request);
+        Message message = prepareMessage(request, GpcMethods.CREATE_BOOK);
 
         runner.$(send()
                 .endpoint(grpcEndpoint)
-                .message()
-                .header(HEADER_NAME, GpcMethods.CREATE_BOOK)
-                .body(requestJson)
+                .message(message)
                 .build());
 
         runner.$(receive()
@@ -104,30 +111,41 @@ public class BookITCitrus {
     @Test
     @CitrusTest
     public void testDeleteBookService(@CitrusResource GherkinTestActionRunner runner) throws InvalidProtocolBufferException {
-        String deleteBookRequestJson = prepareDeleteRequest();
-
         BookOuterClass.CreateBookRequest createBookRequest = prepareCreateBookRequest();
-        String createBookRequestJson = JsonFormat.printer().print(createBookRequest);
-
+        Message createBookMessage = prepareMessage(createBookRequest, GpcMethods.CREATE_BOOK);
+        ObjectMapper mapper = new ObjectMapper();
+        //Create new book to be deleted
         runner.$(send()
                 .endpoint(grpcEndpoint)
-                .message()
-                .header(HEADER_NAME, GpcMethods.CREATE_BOOK)
-                .body(createBookRequestJson)
+                .message(createBookMessage)
                 .build());
 
+        BookOuterClass.Book bookResponse = null;
+        //Read the book id
+        String variableName = "newBook";
         runner.$(receive()
                 .endpoint(grpcEndpoint)
                 .message()
-                .type(MessageType.JSON)
-
-        );
+                        .extract(
+                                (message, context) -> context.setVariable(variableName,
+                                        message.getPayload())));
+        final String[] id = {""};
+        runner.then(context -> {
+            String jsonString = context.getVariable(variableName);
+            try {
+                JsonNode jsonNode = mapper.readTree(jsonString);
+                id[0] = jsonNode.get("id").asText();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        //Delete new book
+        BookOuterClass.DeleteBookRequest deleteBookRequest = prepareDeleteRequest(id[0]);
+        Message deleteBookMessage = prepareMessage(deleteBookRequest, GpcMethods.DELETE_BOOK);
 
         runner.$(send()
                 .endpoint(grpcEndpoint)
-                .message()
-                .header(HEADER_NAME, GpcMethods.DELETE_BOOK)
-                .body(deleteBookRequestJson)
+                .message(deleteBookMessage)
                 .build());
 
         runner.$(receive()
@@ -143,13 +161,11 @@ public class BookITCitrus {
     @CitrusTest
     public void testUpdateBookService(@CitrusResource GherkinTestActionRunner runner) throws InvalidProtocolBufferException {
         BookOuterClass.UpdateBookRequest request = prepareUpdateBookRequest();
-        String requestJson = JsonFormat.printer().print(request);
+        Message message = prepareMessage(request, GpcMethods.UPDATE_BOOK);
 
         runner.$(send()
                 .endpoint(grpcEndpoint)
-                .message()
-                .header(HEADER_NAME, GpcMethods.UPDATE_BOOK)
-                .body(requestJson)
+                .message(message)
                 .build());
 
         runner.$(receive()
@@ -161,29 +177,34 @@ public class BookITCitrus {
                 .build());
     }
 
-    private String prepareFindByIdRequest() throws InvalidProtocolBufferException {
-        BookOuterClass.ReadBookRequest request = BookOuterClass.ReadBookRequest.newBuilder()
+    private Message prepareMessage(GeneratedMessageV3 grpcMessage, GpcMethods type) {
+        byte[] byteArray = grpcMessage.toByteArray();
+        DefaultMessage message = new DefaultMessage(byteArray);
+        message.setHeader(HEADER_NAME, type);
+        message.setType(MessageType.BINARY);
+        return message;
+    }
+
+    private BookOuterClass.ReadBookRequest prepareFindByIdRequest() {
+        return BookOuterClass.ReadBookRequest.newBuilder()
                 .setId("00000000-0000-0000-0000-000000000002")
                 .build();
-        return JsonFormat.printer().print(request);
     }
 
-    private String prepareDeleteRequest() throws InvalidProtocolBufferException {
-        BookOuterClass.ReadBookRequest request = BookOuterClass.ReadBookRequest.newBuilder()
-                .setId("00000000-0000-0000-0000-000000000001")
+    private BookOuterClass.DeleteBookRequest prepareDeleteRequest(String id) {
+        return BookOuterClass.DeleteBookRequest.newBuilder()
+                .setId(id)
                 .build();
-        return JsonFormat.printer().print(request);
     }
 
-    private String prepareFindByIdResponse() throws InvalidProtocolBufferException {
-        BookOuterClass.Book expectedResponse = BookOuterClass.Book.newBuilder()
+    private BookOuterClass.Book prepareFindByIdResponse() {
+        return BookOuterClass.Book.newBuilder()
                 .setId("00000000-0000-0000-0000-000000000002")
                 .setAuthor("Author 2")
                 .setTitle("Book Title 2")
                 .setIsbn("ISBN-0987654321")
                 .setQuantity(5)
                 .build();
-        return JsonFormat.printer().print(expectedResponse);
     }
 
     private BookOuterClass.CreateBookRequest prepareCreateBookRequest() {

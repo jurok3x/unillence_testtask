@@ -35,6 +35,7 @@ dependencies {
 	implementation 'org.liquibase:liquibase-core'
 	implementation 'org.liquibase:liquibase-groovy-dsl:2.1.1'
 	implementation 'org.hibernate:hibernate-validator:8.0.1.Final'
+	implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'
