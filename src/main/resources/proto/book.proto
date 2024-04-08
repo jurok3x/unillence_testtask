@@ -11,28 +11,22 @@ message Book {
 }
 
 message CreateBookRequest {
-  Book book = 1;
-}
-
-message CreateBookResponse {
-  Book book = 1;
+  string title = 1;
+  string author = 2;
+  string isbn = 3;
+  int32 quantity = 4;
 }
 
 message ReadBookRequest {
   string id = 1;
 }
 
-message ReadBookResponse {
-  Book book = 1;
-}
-
 message UpdateBookRequest {
   string id = 1;
-  Book book = 2;
-}
-
-message UpdateBookResponse {
-  Book book = 1;
+  optional string title = 2;
+  optional string author = 3;
+  optional string isbn = 4;
+  optional int32 quantity = 5;
 }
 
 message DeleteBookRequest {
@@ -43,12 +37,20 @@ message DeleteBookResponse {
   string message = 1;
 }
 
+message Empty {}
+
+message BookList {
+  repeated Book books = 1;
+}
+
 service BookService {
-  rpc CreateBook(CreateBookRequest) returns (CreateBookResponse);
+  rpc CreateBook(CreateBookRequest) returns (Book);
 
-  rpc ReadBook(ReadBookRequest) returns (ReadBookResponse);
+  rpc ReadBook(ReadBookRequest) returns (Book);
 
-  rpc UpdateBook(UpdateBookRequest) returns (UpdateBookResponse);
+  rpc ReadALLBooks(Empty) returns (BookList);
+
+  rpc UpdateBook(UpdateBookRequest) returns (Book);
 
   rpc DeleteBook(DeleteBookRequest) returns (DeleteBookResponse);
 }

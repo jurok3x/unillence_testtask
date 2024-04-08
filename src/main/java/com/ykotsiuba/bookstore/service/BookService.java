@@ -1,30 +1,20 @@
 package com.ykotsiuba.bookstore.service;
 
-import com.ykotsiuba.bookstore.BookOuterClass;
-import com.ykotsiuba.bookstore.BookServiceGrpc;
-import io.grpc.stub.StreamObserver;
-import net.devh.boot.grpc.server.service.GrpcService;
+import com.ykotsiuba.bookstore.dto.BookDTO;
+import com.ykotsiuba.bookstore.dto.CreateBookRequestDTO;
+import com.ykotsiuba.bookstore.dto.UpdateBookRequestDTO;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-@GrpcService
-public class BookService extends BookServiceGrpc.BookServiceImplBase {
+public interface BookService {
 
-    @Override
-    public void readBook(BookOuterClass.ReadBookRequest request, StreamObserver<BookOuterClass.ReadBookResponse> responseObserver) {
+    Mono<BookDTO> findById(String id);
 
-    }
+    Flux<BookDTO> findAll();
 
-    @Override
-    public void createBook(BookOuterClass.CreateBookRequest request, StreamObserver<BookOuterClass.CreateBookResponse> responseObserver) {
+    Mono<BookDTO> save(CreateBookRequestDTO requestDTO);
 
-    }
+    Mono<BookDTO> update(String id, UpdateBookRequestDTO requestDTO);
 
-    @Override
-    public void deleteBook(BookOuterClass.DeleteBookRequest request, StreamObserver<BookOuterClass.DeleteBookResponse> responseObserver) {
-
-    }
-
-    @Override
-    public void updateBook(BookOuterClass.UpdateBookRequest request, StreamObserver<BookOuterClass.UpdateBookResponse> responseObserver) {
-
-    }
+    Mono<Void> delete(String id);
 }
