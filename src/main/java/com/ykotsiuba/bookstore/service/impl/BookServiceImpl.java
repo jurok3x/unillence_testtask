@@ -15,6 +15,9 @@ import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
+/**
+ * Service implementation for CRUD operations on books.
+ */
 @Service
 @RequiredArgsConstructor
 public class BookServiceImpl implements BookService {
@@ -23,6 +26,12 @@ public class BookServiceImpl implements BookService {
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
 
+    /**
+     * Finds a book by ID.
+     *
+     * @param id The ID of the book to find
+     * @return A Mono emitting the found book, or an error if not found
+     */
     @Override
     public Mono<BookDTO> findById(String id) {
         return Mono.fromCallable(() -> bookRepository.findById(UUID.fromString(id)))
@@ -31,12 +40,23 @@ public class BookServiceImpl implements BookService {
                 .switchIfEmpty(Mono.error(new EntityNotFoundException(BOOK_NOT_FOUND)));
     }
 
+    /**
+     * Finds all books.
+     *
+     * @return A Flux emitting all books
+     */
     @Override
     public Flux<BookDTO> findAll() {
         return Flux.defer(() -> Flux.fromIterable(bookRepository.findAll())
                 .map(bookMapper::toDTO));
     }
 
+    /**
+     * Saves a new book.
+     *
+     * @param requestDTO The request containing details of the book to save
+     * @return A Mono emitting the saved book
+     */
     @Override
     public Mono<BookDTO> save(CreateBookRequestDTO requestDTO) {
         Book book = new Book();
@@ -48,6 +68,13 @@ public class BookServiceImpl implements BookService {
                 .map(bookMapper::toDTO);
     }
 
+    /**
+     * Updates an existing book.
+     *
+     * @param id         The ID of the book to update
+     * @param requestDTO The request containing updated details of the book
+     * @return A Mono emitting the updated book
+     */
     @Override
     public Mono<BookDTO> update(String id, UpdateBookRequestDTO requestDTO) {
         return findById(id)
@@ -66,6 +93,12 @@ public class BookServiceImpl implements BookService {
                 }).map(bookMapper::toDTO);
     }
 
+    /**
+     * Deletes a book by ID.
+     *
+     * @param id The ID of the book to delete
+     * @return A Mono indicating completion of the delete operation
+     */
     @Override
     public Mono<Void> delete(String id) {
         return findById(id)

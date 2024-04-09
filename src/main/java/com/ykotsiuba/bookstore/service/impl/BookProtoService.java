@@ -15,6 +15,9 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import net.devh.boot.grpc.server.service.GrpcService;
 
+/**
+ * gRPC service implementation for CRUD operations on books.
+ */
 @GrpcService
 @RequiredArgsConstructor
 public class BookProtoService extends BookServiceGrpc.BookServiceImplBase {
@@ -27,6 +30,12 @@ public class BookProtoService extends BookServiceGrpc.BookServiceImplBase {
 
     private final BookProtoMapper bookMapper;
 
+    /**
+     * Reads a book by ID.
+     *
+     * @param request          Request containing book ID
+     * @param responseObserver Response observer
+     */
     @Override
     public void readBook(BookOuterClass.ReadBookRequest request, StreamObserver<BookOuterClass.Book> responseObserver) {
         String id = request.getId();
@@ -38,6 +47,12 @@ public class BookProtoService extends BookServiceGrpc.BookServiceImplBase {
                 }, responseObserver::onCompleted);
     }
 
+    /**
+     * Reads all books.
+     *
+     * @param request          Empty request
+     * @param responseObserver Response observer
+     */
     @Override
     public void readALLBooks(BookOuterClass.Empty request, StreamObserver<BookOuterClass.BookList> responseObserver) {
         bookService.findAll()
@@ -54,6 +69,12 @@ public class BookProtoService extends BookServiceGrpc.BookServiceImplBase {
                 }, responseObserver::onCompleted);
     }
 
+    /**
+     * Creates a new book.
+     *
+     * @param request          Request containing book details
+     * @param responseObserver Response observer
+     */
     @Override
     public void createBook(BookOuterClass.CreateBookRequest request, StreamObserver<BookOuterClass.Book> responseObserver) {
         bookService.save(bookMapper.toCreateRequestDTO(request))
@@ -64,6 +85,12 @@ public class BookProtoService extends BookServiceGrpc.BookServiceImplBase {
                 }, responseObserver::onCompleted);
     }
 
+    /**
+     * Deletes a book by ID.
+     *
+     * @param request          Request containing book ID
+     * @param responseObserver Response observer
+     */
     @Override
     public void deleteBook(BookOuterClass.DeleteBookRequest request, StreamObserver<BookOuterClass.DeleteBookResponse> responseObserver) {
         String id = request.getId();
@@ -83,6 +110,12 @@ public class BookProtoService extends BookServiceGrpc.BookServiceImplBase {
                 );
     }
 
+    /**
+     * Updates an existing book.
+     *
+     * @param request          Request containing updated book details
+     * @param responseObserver Response observer
+     */
     @Override
     public void updateBook(BookOuterClass.UpdateBookRequest request, StreamObserver<BookOuterClass.Book> responseObserver) {
         String id = request.getId();
@@ -91,13 +124,19 @@ public class BookProtoService extends BookServiceGrpc.BookServiceImplBase {
                 .map(bookMapper::toProto)
                 .subscribe(responseObserver::onNext,
                         error -> {
-                                Code code = error.getClass() == EntityNotFoundException.class ? Code.NOT_FOUND : Code.INVALID_ARGUMENT;
-                                Status status = prepareErrorStatus(error.getMessage(), code);
+                                Status status = prepareErrorStatus(error.getMessage(), Code.NOT_FOUND);
                                 responseObserver.onError(StatusProto.toStatusRuntimeException(status));
                             },
                         responseObserver::onCompleted);
     }
 
+    /**
+     * Prepares error status.
+     *
+     * @param message Error message
+     * @param code    Error code
+     * @return Status object
+     */
     private Status prepareErrorStatus(String message, Code code) {
         return Status.newBuilder()
                 .setCode(code.getNumber())
