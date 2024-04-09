@@ -5,19 +5,14 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.4.xsd">
 
     <changeSet id="1" author="ykotsiuba">
-        <insert tableName="books">
-            <column name="id" value="00000000-0000-0000-0000-000000000003"/>
-            <column name="title" value="Book Title 1"/>
-            <column name="author" value="Author 1"/>
-            <column name="isbn" value="ISBN-1234567890"/>
-            <column name="quantity" value="10"/>
-        </insert>
-        <insert tableName="books">
-            <column name="id" value="00000000-0000-0000-0000-000000000004"/>
-            <column name="title" value="Book Title 2"/>
-            <column name="author" value="Author 2"/>
-            <column name="isbn" value="ISBN-0987654321"/>
-            <column name="quantity" value="5"/>
-        </insert>
+        <createTable tableName="books">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="title" type="varchar(255)"/>
+            <column name="author" type="varchar(255)"/>
+            <column name="isbn" type="varchar(20)"/>
+            <column name="quantity" type="int"/>
+        </createTable>
     </changeSet>
 </databaseChangeLog>
